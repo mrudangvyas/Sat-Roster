@@ -4,13 +4,14 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
+    "prepare:data": "node scripts/export-static-api.mjs",
     "start": "node server.js",
     "start:local": "node scripts/start-local-6715.mjs",
     "server": "node server.js",
     "dev": "node scripts/dev-full.mjs",
     "dev:vite": "vite",
     "dev:local": "set SATROSTER_BACKEND_PORT=6715&& node scripts/dev-full.mjs",
-    "build": "vite build",
+    "build": "npm run prepare:data && vite build",
     "preview": "vite preview"
   },
   "dependencies": {

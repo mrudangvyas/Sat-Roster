@@ -95,17 +95,63 @@ interface CompareSnapshot {
   airacCount: number;
 }
 
+interface StaticScheduleDataset {
+  defaultYear: string;
+  availableYears: string[];
+  csvByYear: Record<string, string>;
+  generatedAt: string;
+}
+
+interface StaticAiracDataset {
+  defaultYear: string;
+  availableYears: string[];
+  recordsByYear: Record<string, AiracCycleRecord[]>;
+  generatedAt: string;
+}
+
 const NOTE_WORKFLOW_KEY = "satroster_note_workflow";
 const ALERT_STALE_MINUTES = 45;
 const AIRAC_CONFLICT_WINDOW_DAYS = 3;
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(
-  /\/+$/,
-  "",
-);
+const STATIC_SCHEDULE_DATA_URL = `${import.meta.env.BASE_URL}api/schedule-by-year.json`;
+const STATIC_AIRAC_DATA_URL = `${import.meta.env.BASE_URL}api/airac-by-year.json`;
 
-const buildApiUrl = (path: string) => {
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return API_BASE_URL ? `${API_BASE_URL}${normalizedPath}` : normalizedPath;
+let scheduleDatasetPromise: Promise<StaticScheduleDataset> | null = null;
+let airacDatasetPromise: Promise<StaticAiracDataset> | null = null;
+
+const fetchStaticJson = async <T,>(url: string): Promise<T> => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Static dataset request failed: ${response.status}`);
+  }
+  return (await response.json()) as T;
+};
+
+const loadScheduleDataset = () => {
+  scheduleDatasetPromise =
+    scheduleDatasetPromise ??
+    fetchStaticJson<StaticScheduleDataset>(STATIC_SCHEDULE_DATA_URL);
+  return scheduleDatasetPromise;
+};
+
+const loadAiracDataset = () => {
+  airacDatasetPromise =
+    airacDatasetPromise ??
+    fetchStaticJson<StaticAiracDataset>(STATIC_AIRAC_DATA_URL);
+  return airacDatasetPromise;
+};
+
+const resolveYear = (
+  requestedYear: string,
+  availableYears: string[],
+  defaultYear: string,
+) => {
+  if (availableYears.includes(requestedYear)) {
+    return requestedYear;
+  }
+  if (availableYears.includes(defaultYear)) {
+    return defaultYear;
+  }
+  return availableYears[0] || requestedYear;
 };
 
 const parseStoredNoteWorkflow = () => {
@@ -139,7 +185,7 @@ const diffDays = (leftISO: string, rightISO: string) => {
 };
 
 const App: React.FC<AppProps> = ({ variant = "classic" }) => {
-  type ScheduleSourceMode = "api" | "fallback" | "uploaded";
+  type ScheduleSourceMode = "static" | "fallback" | "uploaded";
   const isV2 = variant === "v2";
 
   const [data, setData] = useState<ScheduleData | null>(null);
@@ -169,7 +215,7 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
   const [isImported, setIsImported] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [scheduleSourceMode, setScheduleSourceMode] =
-    useState<ScheduleSourceMode>("api");
+    useState<ScheduleSourceMode>("static");
   const [scheduleWarning, setScheduleWarning] = useState<string | null>(null);
   const [airacResolvedYear, setAiracResolvedYear] = useState<string>(
     APP_CONFIG.CURRENT_YEAR,
@@ -222,30 +268,29 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
       }
 
       try {
-        const response = await fetch(
-          buildApiUrl(`/api/schedule?year=${selectedYear}`),
+        const dataset = await loadScheduleDataset();
+        const availableYears = Array.isArray(dataset.availableYears)
+          ? dataset.availableYears
+          : [];
+        const resolvedYear = resolveYear(
+          selectedYear,
+          availableYears,
+          dataset.defaultYear || APP_CONFIG.CURRENT_YEAR,
         );
-        if (!response.ok) {
-          throw new Error(`Server responded with ${response.status}`);
+        const csv = dataset.csvByYear?.[resolvedYear];
+        if (!csv) {
+          throw new Error("No schedule CSV found in static dataset");
         }
+        scheduleCacheRef.current[resolvedYear] = csv;
 
-        const payload = await response.json();
-        if (!payload?.csv) {
-          throw new Error("Invalid API payload");
-        }
-
-        const resolvedYear =
-          typeof payload?.resolvedYear === "string"
-            ? payload.resolvedYear
-            : selectedYear;
-        scheduleCacheRef.current[resolvedYear] = payload.csv;
-
-        setData(processScheduleData(payload.csv));
+        setData(processScheduleData(csv));
         setIsImported(false);
-        setScheduleSourceMode("api");
+        setScheduleSourceMode("static");
         setScheduleFetchedAt(new Date().toISOString());
         setScheduleWarning(
-          typeof payload?.warning === "string" ? payload.warning : null,
+          resolvedYear !== selectedYear
+            ? `Schedule year ${selectedYear} is unavailable. Showing ${resolvedYear}.`
+            : null,
         );
         setUploadError(null);
       } catch (error) {
@@ -258,10 +303,10 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
         setScheduleFetchedAt(new Date().toISOString());
         setScheduleWarning(
           cachedCsv
-            ? `Live schedule API is unavailable. Displaying cached ${selectedYear} schedule data.`
+            ? `Static schedule dataset is unavailable. Displaying cached ${selectedYear} schedule data.`
             : selectedYear === APP_CONFIG.CURRENT_YEAR
-              ? "Live schedule API is unavailable. Displaying bundled fallback data."
-              : `Live schedule API is unavailable. Displaying bundled ${APP_CONFIG.CURRENT_YEAR} fallback data for requested year ${selectedYear}.`,
+              ? "Static schedule dataset is unavailable. Displaying bundled fallback data."
+              : `Static schedule dataset is unavailable. Displaying bundled ${APP_CONFIG.CURRENT_YEAR} fallback data for requested year ${selectedYear}.`,
         );
       }
     };
@@ -272,34 +317,34 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
   useEffect(() => {
     const fetchAiracData = async () => {
       try {
-        const response = await fetch(
-          buildApiUrl(`/api/airac?year=${selectedYear}`),
+        const dataset = await loadAiracDataset();
+        const availableYears = Array.isArray(dataset.availableYears)
+          ? dataset.availableYears
+          : [];
+        const resolvedYear = resolveYear(
+          selectedYear,
+          availableYears,
+          dataset.defaultYear || APP_CONFIG.CURRENT_YEAR,
         );
-        if (!response.ok) {
-          throw new Error(`Server responded with ${response.status}`);
-        }
-
-        const payload = await response.json();
-        setAiracRecords(Array.isArray(payload?.records) ? payload.records : []);
-        setAiracResolvedYear(
-          typeof payload?.resolvedYear === "string"
-            ? payload.resolvedYear
-            : selectedYear,
-        );
-        setAiracAvailableYears(
-          Array.isArray(payload?.availableYears) ? payload.availableYears : [],
-        );
+        const records = Array.isArray(dataset.recordsByYear?.[resolvedYear])
+          ? dataset.recordsByYear[resolvedYear]
+          : [];
+        setAiracRecords(records);
+        setAiracResolvedYear(resolvedYear);
+        setAiracAvailableYears(availableYears);
         setAiracWarning(
-          typeof payload?.warning === "string" ? payload.warning : null,
+          resolvedYear !== selectedYear
+            ? `AIRAC year ${selectedYear} is unavailable. Showing ${resolvedYear}.`
+            : null,
         );
         setAiracFetchedAt(new Date().toISOString());
       } catch (error) {
-        console.warn("AIRAC data unavailable:", error);
+        console.warn("AIRAC static data unavailable:", error);
         setAiracRecords([]);
         setAiracResolvedYear(selectedYear);
         setAiracAvailableYears([]);
         setAiracWarning(
-          `AIRAC API unavailable for requested year ${selectedYear}.`,
+          `AIRAC static dataset unavailable for requested year ${selectedYear}.`,
         );
         setAiracFetchedAt(new Date().toISOString());
       }
@@ -355,30 +400,39 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
     const compareYear = String(parsedYear - 1);
     const fetchCompare = async () => {
       try {
-        const response = await fetch(
-          buildApiUrl(`/api/schedule?year=${compareYear}`),
+        const scheduleDataset = await loadScheduleDataset();
+        const scheduleYears = Array.isArray(scheduleDataset.availableYears)
+          ? scheduleDataset.availableYears
+          : [];
+        const resolvedCompareYear = resolveYear(
+          compareYear,
+          scheduleYears,
+          scheduleDataset.defaultYear || APP_CONFIG.CURRENT_YEAR,
         );
-        if (!response.ok) {
-          throw new Error(`Server responded with ${response.status}`);
+        const compareCsv = scheduleDataset.csvByYear?.[resolvedCompareYear];
+        if (!compareCsv) {
+          throw new Error("Compare year schedule is unavailable");
         }
-        const payload = await response.json();
-        if (!payload?.csv) {
-          throw new Error("Invalid compare payload");
-        }
-        const compareData = processScheduleData(payload.csv);
+        const compareData = processScheduleData(compareCsv);
         let compareAiracCount = 0;
         try {
-          const airacResponse = await fetch(
-            buildApiUrl(`/api/airac?year=${compareYear}`),
+          const airacDataset = await loadAiracDataset();
+          const airacYears = Array.isArray(airacDataset.availableYears)
+            ? airacDataset.availableYears
+            : [];
+          const resolvedAiracYear = resolveYear(
+            compareYear,
+            airacYears,
+            airacDataset.defaultYear || APP_CONFIG.CURRENT_YEAR,
           );
-          if (airacResponse.ok) {
-            const airacPayload = await airacResponse.json();
-            compareAiracCount = Array.isArray(airacPayload?.records)
-              ? airacPayload.records.length
-              : 0;
-          }
+          const airacRecordsForYear = airacDataset.recordsByYear?.[
+            resolvedAiracYear
+          ];
+          compareAiracCount = Array.isArray(airacRecordsForYear)
+            ? airacRecordsForYear.length
+            : 0;
         } catch (airacError) {
-          console.warn("Compare AIRAC fetch unavailable:", airacError);
+          console.warn("Compare AIRAC static dataset unavailable:", airacError);
         }
         const heavyDates = compareData.records.filter((record) => {
           const working = compareData.teams.filter(
@@ -1158,9 +1212,9 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
       ? {
           id: "fallback",
           severity: "high" as const,
-          title: "Schedule API fallback in use",
+          title: "Schedule fallback in use",
           detail:
-            "Live schedule API is unavailable. Fallback roster is active.",
+            "Static schedule dataset is unavailable. Fallback roster is active.",
           actionLabel: "Review data source",
           action: () => setIsAuditPanelOpen(true),
         }

@@ -67,14 +67,14 @@ For Vite development mode with backend proxy aligned to local API port:
 npm run dev:local
 ```
 
-## GitHub Pages + External API
+## GitHub Pages (Static-Only Mode)
 
-GitHub Pages hosts only static files. The `/api` routes in `server.js` must run on a separate Node host.
+This repository can run fully on GitHub Pages without a backend service.
 
-1. Deploy backend (`server.js`) to a Node platform such as Render/Railway/Fly.io.
-2. Set backend environment variable `CORS_ORIGIN` to your Pages origin:
-   `https://mrudangvyas.github.io`
-3. In GitHub repository settings, add variable:
-   `VITE_API_BASE_URL=https://<your-backend-domain>`
-   Example: `https://satroster-api.onrender.com`
-4. Push to `main` (or rerun Actions) so Pages rebuilds with that API URL.
+1. `npm run prepare:data` generates static datasets in `public/api`:
+   - `schedule-by-year.json`
+   - `airac-by-year.json`
+2. `npm run build` runs dataset export first, then Vite build.
+3. GitHub Actions deploys the static site from `dist`.
+
+If roster source files in `data/` change, commit and push the updates; the Pages workflow will regenerate static datasets during build.

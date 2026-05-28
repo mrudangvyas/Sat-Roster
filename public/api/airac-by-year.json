@@ -1,0 +1,846 @@
+{
+  "defaultYear": "2026",
+  "availableYears": [
+    "2025",
+    "2026"
+  ],
+  "recordsByYear": {
+    "2025": [
+      {
+        "sourceTeam": "AIP Capture",
+        "revision": "2601",
+        "startDateISO": "2025-12-04",
+        "closeoutDateISO": "2025-12-31",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NAV+",
+        "revision": "2601",
+        "startDateISO": "2025-12-05",
+        "closeoutDateISO": "2026-01-01",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "OBST Team",
+        "revision": "2601",
+        "startDateISO": "2025-12-06",
+        "closeoutDateISO": "2026-01-05",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Geo",
+        "revision": "2601",
+        "startDateISO": "2025-12-15",
+        "closeoutDateISO": "2026-01-09",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "AODB Data team",
+        "revision": "2601",
+        "startDateISO": "2025-12-25",
+        "closeoutDateISO": "2026-01-21",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NFP+NOTAM",
+        "revision": "2601",
+        "startDateISO": "2025-12-25",
+        "closeoutDateISO": "2026-01-21",
+        "status": "AIRAC",
+        "cycleLength": 28
+      }
+    ],
+    "2026": [
+      {
+        "sourceTeam": "AIP Capture",
+        "revision": "2602",
+        "startDateISO": "2026-01-01",
+        "closeoutDateISO": "2026-01-28",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NAV+",
+        "revision": "2602",
+        "startDateISO": "2026-01-02",
+        "closeoutDateISO": "2026-01-29",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "OBST Team",
+        "revision": "2602",
+        "startDateISO": "2026-01-06",
+        "closeoutDateISO": "2026-02-02",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2606",
+        "startDateISO": "2026-01-07",
+        "closeoutDateISO": "2026-01-20",
+        "status": "NON-AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "Geo",
+        "revision": "2602",
+        "startDateISO": "2026-01-12",
+        "closeoutDateISO": "2026-02-06",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2608",
+        "startDateISO": "2026-01-21",
+        "closeoutDateISO": "2026-02-03",
+        "status": "AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "AODB Data team",
+        "revision": "2602",
+        "startDateISO": "2026-01-22",
+        "closeoutDateISO": "2026-02-18",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NFP+NOTAM",
+        "revision": "2602",
+        "startDateISO": "2026-01-22",
+        "closeoutDateISO": "2026-02-18",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "AIP Capture",
+        "revision": "2603",
+        "startDateISO": "2026-01-29",
+        "closeoutDateISO": "2026-02-25",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NAV+",
+        "revision": "2603",
+        "startDateISO": "2026-01-30",
+        "closeoutDateISO": "2026-02-26",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "OBST Team",
+        "revision": "2603",
+        "startDateISO": "2026-02-03",
+        "closeoutDateISO": "2026-03-02",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2610",
+        "startDateISO": "2026-02-04",
+        "closeoutDateISO": "2026-02-17",
+        "status": "NON-AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "Geo",
+        "revision": "2603",
+        "startDateISO": "2026-02-09",
+        "closeoutDateISO": "2026-03-06",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2612",
+        "startDateISO": "2026-02-18",
+        "closeoutDateISO": "2026-03-03",
+        "status": "AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "AODB Data team",
+        "revision": "2603",
+        "startDateISO": "2026-02-19",
+        "closeoutDateISO": "2026-03-18",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NFP+NOTAM",
+        "revision": "2603",
+        "startDateISO": "2026-02-19",
+        "closeoutDateISO": "2026-03-18",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "AIP Capture",
+        "revision": "2604",
+        "startDateISO": "2026-02-26",
+        "closeoutDateISO": "2026-03-25",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NAV+",
+        "revision": "2604",
+        "startDateISO": "2026-02-27",
+        "closeoutDateISO": "2026-03-26",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "OBST Team",
+        "revision": "2604",
+        "startDateISO": "2026-03-03",
+        "closeoutDateISO": "2026-03-30",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2614",
+        "startDateISO": "2026-03-04",
+        "closeoutDateISO": "2026-03-17",
+        "status": "NON-AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "Geo",
+        "revision": "2604",
+        "startDateISO": "2026-03-09",
+        "closeoutDateISO": "2026-04-03",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2616",
+        "startDateISO": "2026-03-18",
+        "closeoutDateISO": "2026-03-31",
+        "status": "AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "AODB Data team",
+        "revision": "2604",
+        "startDateISO": "2026-03-19",
+        "closeoutDateISO": "2026-04-15",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NFP+NOTAM",
+        "revision": "2604",
+        "startDateISO": "2026-03-19",
+        "closeoutDateISO": "2026-04-15",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "AIP Capture",
+        "revision": "2605",
+        "startDateISO": "2026-03-26",
+        "closeoutDateISO": "2026-04-22",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NAV+",
+        "revision": "2605",
+        "startDateISO": "2026-03-27",
+        "closeoutDateISO": "2026-04-23",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "OBST Team",
+        "revision": "2605",
+        "startDateISO": "2026-03-31",
+        "closeoutDateISO": "2026-04-27",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2618",
+        "startDateISO": "2026-04-01",
+        "closeoutDateISO": "2026-04-14",
+        "status": "NON-AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "Geo",
+        "revision": "2605",
+        "startDateISO": "2026-04-06",
+        "closeoutDateISO": "2026-05-01",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2620",
+        "startDateISO": "2026-04-15",
+        "closeoutDateISO": "2026-04-28",
+        "status": "AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "AODB Data team",
+        "revision": "2605",
+        "startDateISO": "2026-04-16",
+        "closeoutDateISO": "2026-05-13",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NFP+NOTAM",
+        "revision": "2605",
+        "startDateISO": "2026-04-16",
+        "closeoutDateISO": "2026-05-13",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "AIP Capture",
+        "revision": "2606",
+        "startDateISO": "2026-04-23",
+        "closeoutDateISO": "2026-05-20",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NAV+",
+        "revision": "2606",
+        "startDateISO": "2026-04-24",
+        "closeoutDateISO": "2026-05-21",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "OBST Team",
+        "revision": "2606",
+        "startDateISO": "2026-04-28",
+        "closeoutDateISO": "2026-05-25",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2622",
+        "startDateISO": "2026-04-29",
+        "closeoutDateISO": "2026-05-12",
+        "status": "NON-AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "Geo",
+        "revision": "2606",
+        "startDateISO": "2026-05-04",
+        "closeoutDateISO": "2026-05-29",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2624",
+        "startDateISO": "2026-05-13",
+        "closeoutDateISO": "2026-05-26",
+        "status": "AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "AODB Data team",
+        "revision": "2606",
+        "startDateISO": "2026-05-14",
+        "closeoutDateISO": "2026-06-10",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NFP+NOTAM",
+        "revision": "2606",
+        "startDateISO": "2026-05-14",
+        "closeoutDateISO": "2026-06-10",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "AIP Capture",
+        "revision": "2607",
+        "startDateISO": "2026-05-21",
+        "closeoutDateISO": "2026-06-17",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NAV+",
+        "revision": "2607",
+        "startDateISO": "2026-05-22",
+        "closeoutDateISO": "2026-06-18",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "OBST Team",
+        "revision": "2607",
+        "startDateISO": "2026-05-26",
+        "closeoutDateISO": "2026-06-22",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2626",
+        "startDateISO": "2026-05-27",
+        "closeoutDateISO": "2026-06-09",
+        "status": "NON-AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "Geo",
+        "revision": "2607",
+        "startDateISO": "2026-06-01",
+        "closeoutDateISO": "2026-06-26",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2628",
+        "startDateISO": "2026-06-10",
+        "closeoutDateISO": "2026-06-23",
+        "status": "AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "AODB Data team",
+        "revision": "2607",
+        "startDateISO": "2026-06-11",
+        "closeoutDateISO": "2026-07-08",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NFP+NOTAM",
+        "revision": "2607",
+        "startDateISO": "2026-06-11",
+        "closeoutDateISO": "2026-07-08",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "AIP Capture",
+        "revision": "2608",
+        "startDateISO": "2026-06-18",
+        "closeoutDateISO": "2026-07-15",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NAV+",
+        "revision": "2608",
+        "startDateISO": "2026-06-19",
+        "closeoutDateISO": "2026-07-16",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "OBST Team",
+        "revision": "2608",
+        "startDateISO": "2026-06-23",
+        "closeoutDateISO": "2026-07-20",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2630",
+        "startDateISO": "2026-06-24",
+        "closeoutDateISO": "2026-07-07",
+        "status": "NON-AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "Geo",
+        "revision": "2608",
+        "startDateISO": "2026-06-29",
+        "closeoutDateISO": "2026-07-24",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2632",
+        "startDateISO": "2026-07-08",
+        "closeoutDateISO": "2026-07-21",
+        "status": "AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "AODB Data team",
+        "revision": "2608",
+        "startDateISO": "2026-07-09",
+        "closeoutDateISO": "2026-08-05",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NFP+NOTAM",
+        "revision": "2608",
+        "startDateISO": "2026-07-09",
+        "closeoutDateISO": "2026-08-05",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "AIP Capture",
+        "revision": "2609",
+        "startDateISO": "2026-07-16",
+        "closeoutDateISO": "2026-08-12",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NAV+",
+        "revision": "2609",
+        "startDateISO": "2026-07-17",
+        "closeoutDateISO": "2026-08-13",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "OBST Team",
+        "revision": "2609",
+        "startDateISO": "2026-07-21",
+        "closeoutDateISO": "2026-08-17",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2634",
+        "startDateISO": "2026-07-22",
+        "closeoutDateISO": "2026-08-04",
+        "status": "NON-AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "Geo",
+        "revision": "2609",
+        "startDateISO": "2026-07-27",
+        "closeoutDateISO": "2026-08-21",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2636",
+        "startDateISO": "2026-08-05",
+        "closeoutDateISO": "2026-08-18",
+        "status": "AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "AODB Data team",
+        "revision": "2609",
+        "startDateISO": "2026-08-06",
+        "closeoutDateISO": "2026-09-02",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NFP+NOTAM",
+        "revision": "2609",
+        "startDateISO": "2026-08-06",
+        "closeoutDateISO": "2026-09-02",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "AIP Capture",
+        "revision": "2610",
+        "startDateISO": "2026-08-13",
+        "closeoutDateISO": "2026-09-09",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NAV+",
+        "revision": "2610",
+        "startDateISO": "2026-08-14",
+        "closeoutDateISO": "2026-09-10",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "OBST Team",
+        "revision": "2610",
+        "startDateISO": "2026-08-18",
+        "closeoutDateISO": "2026-09-14",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2638",
+        "startDateISO": "2026-08-19",
+        "closeoutDateISO": "2026-09-01",
+        "status": "NON-AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "Geo",
+        "revision": "2610",
+        "startDateISO": "2026-08-24",
+        "closeoutDateISO": "2026-09-18",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2640",
+        "startDateISO": "2026-09-02",
+        "closeoutDateISO": "2026-09-15",
+        "status": "AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "AODB Data team",
+        "revision": "2610",
+        "startDateISO": "2026-09-03",
+        "closeoutDateISO": "2026-09-30",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NFP+NOTAM",
+        "revision": "2610",
+        "startDateISO": "2026-09-03",
+        "closeoutDateISO": "2026-09-30",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "AIP Capture",
+        "revision": "2611",
+        "startDateISO": "2026-09-10",
+        "closeoutDateISO": "2026-10-07",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NAV+",
+        "revision": "2611",
+        "startDateISO": "2026-09-11",
+        "closeoutDateISO": "2026-10-08",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "OBST Team",
+        "revision": "2611",
+        "startDateISO": "2026-09-15",
+        "closeoutDateISO": "2026-10-12",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2642",
+        "startDateISO": "2026-09-16",
+        "closeoutDateISO": "2026-09-29",
+        "status": "NON-AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "Geo",
+        "revision": "2611",
+        "startDateISO": "2026-09-21",
+        "closeoutDateISO": "2026-10-16",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2644",
+        "startDateISO": "2026-09-30",
+        "closeoutDateISO": "2026-10-13",
+        "status": "AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "AODB Data team",
+        "revision": "2611",
+        "startDateISO": "2026-10-01",
+        "closeoutDateISO": "2026-10-28",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NFP+NOTAM",
+        "revision": "2611",
+        "startDateISO": "2026-10-01",
+        "closeoutDateISO": "2026-10-28",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "AIP Capture",
+        "revision": "2612",
+        "startDateISO": "2026-10-08",
+        "closeoutDateISO": "2026-11-04",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NAV+",
+        "revision": "2612",
+        "startDateISO": "2026-10-09",
+        "closeoutDateISO": "2026-11-05",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "OBST Team",
+        "revision": "2612",
+        "startDateISO": "2026-10-13",
+        "closeoutDateISO": "2026-11-09",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2646",
+        "startDateISO": "2026-10-14",
+        "closeoutDateISO": "2026-10-27",
+        "status": "NON-AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "Geo",
+        "revision": "2612",
+        "startDateISO": "2026-10-19",
+        "closeoutDateISO": "2026-11-13",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2648",
+        "startDateISO": "2026-10-28",
+        "closeoutDateISO": "2026-11-10",
+        "status": "AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "AODB Data team",
+        "revision": "2612",
+        "startDateISO": "2026-10-29",
+        "closeoutDateISO": "2026-11-25",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NFP+NOTAM",
+        "revision": "2612",
+        "startDateISO": "2026-10-29",
+        "closeoutDateISO": "2026-11-25",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "AIP Capture",
+        "revision": "2613",
+        "startDateISO": "2026-11-05",
+        "closeoutDateISO": "2026-12-02",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NAV+",
+        "revision": "2613",
+        "startDateISO": "2026-11-06",
+        "closeoutDateISO": "2026-12-03",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "OBST Team",
+        "revision": "2613",
+        "startDateISO": "2026-11-10",
+        "closeoutDateISO": "2026-12-07",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2650",
+        "startDateISO": "2026-11-11",
+        "closeoutDateISO": "2026-11-24",
+        "status": "NON-AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "Geo",
+        "revision": "2613",
+        "startDateISO": "2026-11-16",
+        "closeoutDateISO": "2026-12-11",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2652",
+        "startDateISO": "2026-11-25",
+        "closeoutDateISO": "2026-12-08",
+        "status": "AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "AODB Data team",
+        "revision": "2613",
+        "startDateISO": "2026-11-26",
+        "closeoutDateISO": "2026-12-23",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "NFP+NOTAM",
+        "revision": "2613",
+        "startDateISO": "2026-11-26",
+        "closeoutDateISO": "2026-12-23",
+        "status": "AIRAC",
+        "cycleLength": 28
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2654",
+        "startDateISO": "2026-12-09",
+        "closeoutDateISO": "2026-12-22",
+        "status": "NON-AIRAC",
+        "cycleLength": 14
+      },
+      {
+        "sourceTeam": "Charts+Minima+Min+ENR",
+        "revision": "2656",
+        "startDateISO": "2026-12-23",
+        "closeoutDateISO": "2027-01-05",
+        "status": "AIRAC",
+        "cycleLength": 14
+      }
+    ]
+  },
+  "generatedAt": "2026-05-28T05:43:07.633Z"
+}
