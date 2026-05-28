@@ -1,0 +1,5 @@
+{
+  "name": "SatRoster 2026 - Saturday Schedule Manager",
+  "description": "A high-performance internal web app for managing and viewing the 2026 Saturday working schedules for various office teams. Designed for DietPi and LAN environments.",
+  "requestFramePermissions": []
+}
