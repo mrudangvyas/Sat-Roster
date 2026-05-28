@@ -26,6 +26,7 @@ export default defineConfig({
       },
     },
   ],
+  base: "/Sat-Roster/",
   server: {
     // This is where you set the frontend port
     port: 6176,
