@@ -10,6 +10,37 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 6175;
 const DEFAULT_YEAR = "2026";
+const allowedOrigins = (process.env.CORS_ORIGIN || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    const allowAnyOrigin = allowedOrigins.length === 0;
+    const isAllowedOrigin = Boolean(origin && allowedOrigins.includes(origin));
+
+    if (allowAnyOrigin) {
+        res.setHeader("Access-Control-Allow-Origin", "*");
+    } else if (isAllowedOrigin) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Vary", "Origin");
+    }
+
+    res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+    if (req.method === "OPTIONS") {
+        if (allowAnyOrigin || isAllowedOrigin) {
+            res.status(204).end();
+            return;
+        }
+        res.status(403).json({ error: "CORS origin not allowed" });
+        return;
+    }
+
+    next();
+});
 
 
 app.get('/api/schedule', (req, res) => {

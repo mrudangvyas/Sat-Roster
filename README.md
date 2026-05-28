@@ -66,3 +66,15 @@ For Vite development mode with backend proxy aligned to local API port:
 # single terminal (Windows cmd/npm)
 npm run dev:local
 ```
+
+## GitHub Pages + External API
+
+GitHub Pages hosts only static files. The `/api` routes in `server.js` must run on a separate Node host.
+
+1. Deploy backend (`server.js`) to a Node platform such as Render/Railway/Fly.io.
+2. Set backend environment variable `CORS_ORIGIN` to your Pages origin:
+   `https://mrudangvyas.github.io`
+3. In GitHub repository settings, add variable:
+   `VITE_API_BASE_URL=https://<your-backend-domain>`
+   Example: `https://satroster-api.onrender.com`
+4. Push to `main` (or rerun Actions) so Pages rebuilds with that API URL.

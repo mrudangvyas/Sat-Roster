@@ -98,6 +98,15 @@ interface CompareSnapshot {
 const NOTE_WORKFLOW_KEY = "satroster_note_workflow";
 const ALERT_STALE_MINUTES = 45;
 const AIRAC_CONFLICT_WINDOW_DAYS = 3;
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(
+  /\/+$/,
+  "",
+);
+
+const buildApiUrl = (path: string) => {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return API_BASE_URL ? `${API_BASE_URL}${normalizedPath}` : normalizedPath;
+};
 
 const parseStoredNoteWorkflow = () => {
   const raw = localStorage.getItem(NOTE_WORKFLOW_KEY);
@@ -213,7 +222,9 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
       }
 
       try {
-        const response = await fetch(`/api/schedule?year=${selectedYear}`);
+        const response = await fetch(
+          buildApiUrl(`/api/schedule?year=${selectedYear}`),
+        );
         if (!response.ok) {
           throw new Error(`Server responded with ${response.status}`);
         }
@@ -261,7 +272,9 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
   useEffect(() => {
     const fetchAiracData = async () => {
       try {
-        const response = await fetch(`/api/airac?year=${selectedYear}`);
+        const response = await fetch(
+          buildApiUrl(`/api/airac?year=${selectedYear}`),
+        );
         if (!response.ok) {
           throw new Error(`Server responded with ${response.status}`);
         }
@@ -342,7 +355,9 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
     const compareYear = String(parsedYear - 1);
     const fetchCompare = async () => {
       try {
-        const response = await fetch(`/api/schedule?year=${compareYear}`);
+        const response = await fetch(
+          buildApiUrl(`/api/schedule?year=${compareYear}`),
+        );
         if (!response.ok) {
           throw new Error(`Server responded with ${response.status}`);
         }
@@ -353,7 +368,9 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
         const compareData = processScheduleData(payload.csv);
         let compareAiracCount = 0;
         try {
-          const airacResponse = await fetch(`/api/airac?year=${compareYear}`);
+          const airacResponse = await fetch(
+            buildApiUrl(`/api/airac?year=${compareYear}`),
+          );
           if (airacResponse.ok) {
             const airacPayload = await airacResponse.json();
             compareAiracCount = Array.isArray(airacPayload?.records)
