@@ -1,6 +1,10 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+export default defineConfig({
+  plugins: [react()],
+  base: "/Sat-Roster/",
+});
 const BACKEND_PORT =
   process.env.SATROSTER_BACKEND_PORT ||
   process.env.VITE_BACKEND_PORT ||
