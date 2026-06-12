@@ -20,7 +20,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({
     {
       role: "assistant",
       content:
-        "Hi. Ask me about a Saturday in YYYY-MM-DD format and I will summarize working/off teams.",
+        "Hi. Ask me about a Saturday using formats like 2026-03-21, 21/03/2026, 21-Mar-2026, or Mar 21 2026 and I will summarize working/off teams.",
     },
   ]);
   const [input, setInput] = useState("");
@@ -33,15 +33,104 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({
     }
   }, [messages]);
 
+
+  const parseDateQuery = (query: string) => {
+    const monthLookup: Record<string, string> = {
+      jan: "01",
+      january: "01",
+      feb: "02",
+      february: "02",
+      mar: "03",
+      march: "03",
+      apr: "04",
+      april: "04",
+      may: "05",
+      jun: "06",
+      june: "06",
+      jul: "07",
+      july: "07",
+      aug: "08",
+      august: "08",
+      sep: "09",
+      sept: "09",
+      september: "09",
+      oct: "10",
+      october: "10",
+      nov: "11",
+      november: "11",
+      dec: "12",
+      december: "12",
+    };
+
+    const normalizeYear = (value: string) => {
+      if (value.length === 2) {
+        return `20${value}`;
+      }
+      return value;
+    };
+
+    const toISO = (yearValue: string, monthValue: string, dayValue: string) => {
+      const year = normalizeYear(yearValue);
+      const month = monthValue.padStart(2, "0");
+      const day = dayValue.padStart(2, "0");
+      const candidate = `${year}-${month}-${day}`;
+      const parsed = new Date(`${candidate}T00:00:00Z`);
+
+      if (
+        Number.isNaN(parsed.getTime()) ||
+        parsed.toISOString().slice(0, 10) !== candidate
+      ) {
+        return null;
+      }
+
+      return candidate;
+    };
+
+    const isoMatch = query.match(/\b(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})\b/);
+    if (isoMatch) {
+      const [, year, month, day] = isoMatch;
+      return toISO(year, month, day);
+    }
+
+    const dayFirstNumericMatch = query.match(/\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})\b/);
+    if (dayFirstNumericMatch) {
+      const [, day, month, year] = dayFirstNumericMatch;
+      return toISO(year, month, day);
+    }
+
+    const dayMonthNameMatch = query.match(
+      /\b(\d{1,2})(?:st|nd|rd|th)?[\s-]+([a-zA-Z]{3,9})[\s,-]+(\d{2,4})\b/,
+    );
+    if (dayMonthNameMatch) {
+      const [, day, monthName, year] = dayMonthNameMatch;
+      const month = monthLookup[monthName.toLowerCase()];
+      if (month) {
+        return toISO(year, month, day);
+      }
+    }
+
+    const monthNameDayMatch = query.match(
+      /\b([a-zA-Z]{3,9})[\s-]+(\d{1,2})(?:st|nd|rd|th)?[\s,-]+(\d{2,4})\b/,
+    );
+    if (monthNameDayMatch) {
+      const [, monthName, day, year] = monthNameDayMatch;
+      const month = monthLookup[monthName.toLowerCase()];
+      if (month) {
+        return toISO(year, month, day);
+      }
+    }
+
+    return null;
+  };
+
   const resolveQuery = (query: string) => {
     const scopedTeams = scopeTeams.filter((team) => data.teams.includes(team));
     if (scopedTeams.length === 0) {
       return "No teams are selected. Select at least one team to analyze schedule details.";
     }
 
-    const dateMatch = query.match(/\b\d{4}-\d{2}-\d{2}\b/);
-    if (dateMatch) {
-      const dateISO = dateMatch[0];
+    const dateISO = parseDateQuery(query);
+    if (dateISO) {
       const record = data.records.find((r) => r.dateISO === dateISO);
       if (!record) {
         return `No roster record found for ${dateISO}. Try another Saturday in ${data.records[0]?.year || "the loaded year"}.`;
@@ -86,7 +175,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({
 
     return [
       "I can help with:",
-      "- Date lookup: 2026-03-21",
+      "- Date lookup: 2026-03-21, 21/03/2026, 21-Mar-2026, Mar 21 2026",
       "- Next date: next saturday",
       "- Coverage: summary",
     ].join("\n");
@@ -108,7 +197,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({
   };
 
   return (
-    <div className="fixed bottom-24 md:bottom-6 right-6 z-50 print:hidden">
+    <div className="fixed bottom-10 right-6 z-50 print:hidden">
       {isOpen ? (
         <div className="bg-white w-80 md:w-96 h-[500px] shadow-2xl rounded-2xl border border-slate-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4">
           <div className="bg-slate-900 p-4 flex justify-between items-center text-white">
@@ -170,7 +259,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 onKeyDown={(event) => event.key === "Enter" && handleSend()}
-                placeholder="Ask about date, next saturday, summary..."
+                placeholder="Try 2026-03-21, 21-Mar-2026, next saturday..."
                 className="flex-1 bg-slate-100 border-none rounded-full px-4 py-2 text-xs focus:ring-2 focus:ring-blue-500 transition-all outline-none"
               />
               <button
@@ -194,7 +283,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({
       ) : (
         <button
           onClick={() => setIsOpen(true)}
-          className="bg-slate-900 text-white p-4 rounded-full shadow-xl hover:scale-105 transition-all flex items-center gap-2 active:scale-95"
+          className="bg-slate-900/55 text-white p-4 rounded-full shadow-xl backdrop-blur-md border border-white/20 hover:bg-slate-900/75 hover:scale-105 transition-all flex items-center gap-2 active:scale-95"
           type="button"
         >
           <span className="font-semibold text-sm px-1">Ask Assistant</span>

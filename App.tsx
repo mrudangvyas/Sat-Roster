@@ -22,7 +22,6 @@ import { YearlyPlanner } from "./components/YearlyPlanner";
 import { DependencyFinder } from "./components/DependencyFinder";
 import { YearPoster } from "./components/YearPoster";
 import { DayDetailDrawer } from "./components/DayDetailDrawer";
-import { FeatureGuide } from "./components/FeatureGuide";
 import { AiracInsights } from "./components/AiracInsights";
 import { AssistantChat } from "./components/AssistantChat";
 import { TeamFilterSidebar } from "./components/TeamFilterSidebar";
@@ -95,64 +94,9 @@ interface CompareSnapshot {
   airacCount: number;
 }
 
-interface StaticScheduleDataset {
-  defaultYear: string;
-  availableYears: string[];
-  csvByYear: Record<string, string>;
-  generatedAt: string;
-}
-
-interface StaticAiracDataset {
-  defaultYear: string;
-  availableYears: string[];
-  recordsByYear: Record<string, AiracCycleRecord[]>;
-  generatedAt: string;
-}
-
 const NOTE_WORKFLOW_KEY = "satroster_note_workflow";
 const ALERT_STALE_MINUTES = 45;
 const AIRAC_CONFLICT_WINDOW_DAYS = 3;
-const STATIC_SCHEDULE_DATA_URL = `${import.meta.env.BASE_URL}api/schedule-by-year.json`;
-const STATIC_AIRAC_DATA_URL = `${import.meta.env.BASE_URL}api/airac-by-year.json`;
-
-let scheduleDatasetPromise: Promise<StaticScheduleDataset> | null = null;
-let airacDatasetPromise: Promise<StaticAiracDataset> | null = null;
-
-const fetchStaticJson = async <T,>(url: string): Promise<T> => {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Static dataset request failed: ${response.status}`);
-  }
-  return (await response.json()) as T;
-};
-
-const loadScheduleDataset = () => {
-  scheduleDatasetPromise =
-    scheduleDatasetPromise ??
-    fetchStaticJson<StaticScheduleDataset>(STATIC_SCHEDULE_DATA_URL);
-  return scheduleDatasetPromise;
-};
-
-const loadAiracDataset = () => {
-  airacDatasetPromise =
-    airacDatasetPromise ??
-    fetchStaticJson<StaticAiracDataset>(STATIC_AIRAC_DATA_URL);
-  return airacDatasetPromise;
-};
-
-const resolveYear = (
-  requestedYear: string,
-  availableYears: string[],
-  defaultYear: string,
-) => {
-  if (availableYears.includes(requestedYear)) {
-    return requestedYear;
-  }
-  if (availableYears.includes(defaultYear)) {
-    return defaultYear;
-  }
-  return availableYears[0] || requestedYear;
-};
 
 const parseStoredNoteWorkflow = () => {
   const raw = localStorage.getItem(NOTE_WORKFLOW_KEY);
@@ -185,7 +129,7 @@ const diffDays = (leftISO: string, rightISO: string) => {
 };
 
 const App: React.FC<AppProps> = ({ variant = "classic" }) => {
-  type ScheduleSourceMode = "static" | "fallback" | "uploaded";
+  type ScheduleSourceMode = "api" | "fallback" | "uploaded";
   const isV2 = variant === "v2";
 
   const [data, setData] = useState<ScheduleData | null>(null);
@@ -215,7 +159,7 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
   const [isImported, setIsImported] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [scheduleSourceMode, setScheduleSourceMode] =
-    useState<ScheduleSourceMode>("static");
+    useState<ScheduleSourceMode>("api");
   const [scheduleWarning, setScheduleWarning] = useState<string | null>(null);
   const [airacResolvedYear, setAiracResolvedYear] = useState<string>(
     APP_CONFIG.CURRENT_YEAR,
@@ -268,29 +212,28 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
       }
 
       try {
-        const dataset = await loadScheduleDataset();
-        const availableYears = Array.isArray(dataset.availableYears)
-          ? dataset.availableYears
-          : [];
-        const resolvedYear = resolveYear(
-          selectedYear,
-          availableYears,
-          dataset.defaultYear || APP_CONFIG.CURRENT_YEAR,
-        );
-        const csv = dataset.csvByYear?.[resolvedYear];
-        if (!csv) {
-          throw new Error("No schedule CSV found in static dataset");
+        const response = await fetch(`/api/schedule?year=${selectedYear}`);
+        if (!response.ok) {
+          throw new Error(`Server responded with ${response.status}`);
         }
-        scheduleCacheRef.current[resolvedYear] = csv;
 
-        setData(processScheduleData(csv));
+        const payload = await response.json();
+        if (!payload?.csv) {
+          throw new Error("Invalid API payload");
+        }
+
+        const resolvedYear =
+          typeof payload?.resolvedYear === "string"
+            ? payload.resolvedYear
+            : selectedYear;
+        scheduleCacheRef.current[resolvedYear] = payload.csv;
+
+        setData(processScheduleData(payload.csv));
         setIsImported(false);
-        setScheduleSourceMode("static");
+        setScheduleSourceMode("api");
         setScheduleFetchedAt(new Date().toISOString());
         setScheduleWarning(
-          resolvedYear !== selectedYear
-            ? `Schedule year ${selectedYear} is unavailable. Showing ${resolvedYear}.`
-            : null,
+          typeof payload?.warning === "string" ? payload.warning : null,
         );
         setUploadError(null);
       } catch (error) {
@@ -303,10 +246,10 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
         setScheduleFetchedAt(new Date().toISOString());
         setScheduleWarning(
           cachedCsv
-            ? `Static schedule dataset is unavailable. Displaying cached ${selectedYear} schedule data.`
+            ? `Live schedule API is unavailable. Displaying cached ${selectedYear} schedule data.`
             : selectedYear === APP_CONFIG.CURRENT_YEAR
-              ? "Static schedule dataset is unavailable. Displaying bundled fallback data."
-              : `Static schedule dataset is unavailable. Displaying bundled ${APP_CONFIG.CURRENT_YEAR} fallback data for requested year ${selectedYear}.`,
+              ? "Live schedule API is unavailable. Displaying bundled fallback data."
+              : `Live schedule API is unavailable. Displaying bundled ${APP_CONFIG.CURRENT_YEAR} fallback data for requested year ${selectedYear}.`,
         );
       }
     };
@@ -317,34 +260,32 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
   useEffect(() => {
     const fetchAiracData = async () => {
       try {
-        const dataset = await loadAiracDataset();
-        const availableYears = Array.isArray(dataset.availableYears)
-          ? dataset.availableYears
-          : [];
-        const resolvedYear = resolveYear(
-          selectedYear,
-          availableYears,
-          dataset.defaultYear || APP_CONFIG.CURRENT_YEAR,
+        const response = await fetch(`/api/airac?year=${selectedYear}`);
+        if (!response.ok) {
+          throw new Error(`Server responded with ${response.status}`);
+        }
+
+        const payload = await response.json();
+        setAiracRecords(Array.isArray(payload?.records) ? payload.records : []);
+        setAiracResolvedYear(
+          typeof payload?.resolvedYear === "string"
+            ? payload.resolvedYear
+            : selectedYear,
         );
-        const records = Array.isArray(dataset.recordsByYear?.[resolvedYear])
-          ? dataset.recordsByYear[resolvedYear]
-          : [];
-        setAiracRecords(records);
-        setAiracResolvedYear(resolvedYear);
-        setAiracAvailableYears(availableYears);
+        setAiracAvailableYears(
+          Array.isArray(payload?.availableYears) ? payload.availableYears : [],
+        );
         setAiracWarning(
-          resolvedYear !== selectedYear
-            ? `AIRAC year ${selectedYear} is unavailable. Showing ${resolvedYear}.`
-            : null,
+          typeof payload?.warning === "string" ? payload.warning : null,
         );
         setAiracFetchedAt(new Date().toISOString());
       } catch (error) {
-        console.warn("AIRAC static data unavailable:", error);
+        console.warn("AIRAC data unavailable:", error);
         setAiracRecords([]);
         setAiracResolvedYear(selectedYear);
         setAiracAvailableYears([]);
         setAiracWarning(
-          `AIRAC static dataset unavailable for requested year ${selectedYear}.`,
+          `AIRAC API unavailable for requested year ${selectedYear}.`,
         );
         setAiracFetchedAt(new Date().toISOString());
       }
@@ -400,39 +341,26 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
     const compareYear = String(parsedYear - 1);
     const fetchCompare = async () => {
       try {
-        const scheduleDataset = await loadScheduleDataset();
-        const scheduleYears = Array.isArray(scheduleDataset.availableYears)
-          ? scheduleDataset.availableYears
-          : [];
-        const resolvedCompareYear = resolveYear(
-          compareYear,
-          scheduleYears,
-          scheduleDataset.defaultYear || APP_CONFIG.CURRENT_YEAR,
-        );
-        const compareCsv = scheduleDataset.csvByYear?.[resolvedCompareYear];
-        if (!compareCsv) {
-          throw new Error("Compare year schedule is unavailable");
+        const response = await fetch(`/api/schedule?year=${compareYear}`);
+        if (!response.ok) {
+          throw new Error(`Server responded with ${response.status}`);
         }
-        const compareData = processScheduleData(compareCsv);
+        const payload = await response.json();
+        if (!payload?.csv) {
+          throw new Error("Invalid compare payload");
+        }
+        const compareData = processScheduleData(payload.csv);
         let compareAiracCount = 0;
         try {
-          const airacDataset = await loadAiracDataset();
-          const airacYears = Array.isArray(airacDataset.availableYears)
-            ? airacDataset.availableYears
-            : [];
-          const resolvedAiracYear = resolveYear(
-            compareYear,
-            airacYears,
-            airacDataset.defaultYear || APP_CONFIG.CURRENT_YEAR,
-          );
-          const airacRecordsForYear = airacDataset.recordsByYear?.[
-            resolvedAiracYear
-          ];
-          compareAiracCount = Array.isArray(airacRecordsForYear)
-            ? airacRecordsForYear.length
-            : 0;
+          const airacResponse = await fetch(`/api/airac?year=${compareYear}`);
+          if (airacResponse.ok) {
+            const airacPayload = await airacResponse.json();
+            compareAiracCount = Array.isArray(airacPayload?.records)
+              ? airacPayload.records.length
+              : 0;
+          }
         } catch (airacError) {
-          console.warn("Compare AIRAC static dataset unavailable:", airacError);
+          console.warn("Compare AIRAC fetch unavailable:", airacError);
         }
         const heavyDates = compareData.records.filter((record) => {
           const working = compareData.teams.filter(
@@ -951,14 +879,14 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
     );
   }
 
-  const activeScheduleData = filteredScheduleData ?? data;
+  const dashboardScheduleData = filteredScheduleData ?? data;
+  const activeScheduleData = view === "dashboard" ? dashboardScheduleData : data;
   const navItems = [
     { id: "dashboard", label: "Dashboard" },
     // { id: "planner", label: "Planner" },
     { id: "airac", label: "AIRAC" },
     { id: "dependency", label: "Dependency" },
     // { id: "table", label: "Registry" },
-    { id: "guide", label: "Guide" },
   ] as const;
 
   const scopedTeams = teamFilterMode === "all" ? data.teams : selectedTeams;
@@ -1212,9 +1140,9 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
       ? {
           id: "fallback",
           severity: "high" as const,
-          title: "Schedule fallback in use",
+          title: "Schedule API fallback in use",
           detail:
-            "Static schedule dataset is unavailable. Fallback roster is active.",
+            "Live schedule API is unavailable. Fallback roster is active.",
           actionLabel: "Review data source",
           action: () => setIsAuditPanelOpen(true),
         }
@@ -1798,7 +1726,7 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
 
           {view === "dashboard" && (
             <Dashboard
-              data={activeScheduleData}
+              data={dashboardScheduleData}
               selectedYear={selectedYear}
               onViewDetail={setSelectedDetailRecord}
               isEnhancedMode={isV2}
@@ -1826,8 +1754,8 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
           )}
           {view === "table" && (
             <ScheduleTable
-              records={activeScheduleData.records}
-              teams={activeScheduleData.teams}
+              records={data.records}
+              teams={data.teams}
               notes={notes}
               noteStatuses={noteWorkflowByDate}
               showNoteStatus={isV2}
@@ -1836,14 +1764,14 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
           )}
           {view === "planner" && (
             <YearlyPlanner
-              data={activeScheduleData}
+              data={data}
               notes={notes}
               selectedYear={selectedYear}
             />
           )}
           {view === "dependency" && (
             <DependencyFinder
-              data={activeScheduleData}
+              data={data}
               highlightDates={
                 isV2
                   ? upcomingAiracConflictRecords.map((item) => item.dateISO)
@@ -1863,18 +1791,14 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
           {view === "poster" && (
             <YearPoster data={data} onExit={() => setView("planner")} />
           )}
-          {view === "guide" && <FeatureGuide />}
         </div>
       </main>
 
-      <footer className="mt-auto border-t border-slate-200 bg-white py-8 px-6">
-        <div className="w-full flex flex-col md:flex-row justify-between items-center gap-4 text-slate-400 text-sm">
-          <p>(c) 2026 SatRoster. Saturday Coverage Control Center</p>
-          <div className="flex gap-6 font-medium text-xs">
-            <span>Safety Manual</span>
-            <span>Roster Policy</span>
-            <span>IT Support</span>
-          </div>
+      <footer className="mt-auto border-t border-slate-200 bg-white px-6 py-3">
+        <div className="w-full text-center">
+          <p className="text-xs font-semibold text-slate-500 sm:text-sm">
+            SatRoster &bull; Developed by Mrudang Vyas &bull; Internal planning and roster support tool
+          </p>
         </div>
       </footer>
 

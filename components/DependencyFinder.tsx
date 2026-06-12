@@ -4,7 +4,6 @@ import { TIMEZONE } from "../constants";
 import {
   Users,
   ArrowRight,
-  Download,
   Filter,
   CheckCircle2,
   AlertTriangle,
@@ -124,62 +123,28 @@ export const DependencyFinder: React.FC<DependencyFinderProps> = ({
     1,
   );
 
-  const exportSynergyCSV = () => {
-    const headers = [
-      "Date",
-      "Month",
-      "Selected_Teams_Working",
-      "Count",
-    ].join(",");
-    const rows = overlappingDates.map((r) => {
-      const working = selectedTeams
-        .filter((t) => r.teams[t] === "WORKING")
-        .join(" | ");
-      return `${r.dateISO},${r.month},"${working}",${selectedTeams.filter(
-        (t) => r.teams[t] === "WORKING",
-      ).length}`;
-    });
-    const blob = new Blob([[headers, ...rows].join("\n")], {
-      type: "text/csv",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `satsch_synergy_analysis.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <div className="space-y-8 animate-in slide-in-from-bottom duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
-            Coordination Engine
+            Team Work Dates
           </p>
           <h2 className="mt-1 text-3xl font-bold flex items-center gap-2 text-slate-900">
             <Users size={28} className="text-blue-600" />
-            Synergy Discovery
+            Find Common Working Saturdays
           </h2>
           <p className="text-slate-500 font-medium">
-            Coordinate shifts with overlap filters and impact summaries.
+            Select teams to see when they are working on the same Saturday.
           </p>
         </div>
-        <button
-          onClick={exportSynergyCSV}
-          className="flex items-center space-x-2 px-5 py-3 bg-slate-900 text-white rounded-2xl text-sm font-bold shadow-lg hover:scale-[1.02] transition-all"
-          type="button"
-        >
-          <Download size={18} />
-          <span>Export Synergies</span>
-        </button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
         <div className="bg-white p-8 rounded-2xl space-y-8 relative border border-slate-200 shadow-sm">
           <div className="flex items-center gap-2 text-xs uppercase tracking-[0.4em] font-black text-slate-400">
             <Filter size={14} />
-            Selection Engine
+            Choose Teams and Filters
           </div>
 
           <div className="space-y-3">
@@ -207,7 +172,7 @@ export const DependencyFinder: React.FC<DependencyFinderProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 pt-4 border-t border-slate-200">
             <div>
               <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">
-                Synergy Mode
+                Match Type
               </label>
               <div className="relative">
                 <select
@@ -215,8 +180,8 @@ export const DependencyFinder: React.FC<DependencyFinderProps> = ({
                   onChange={(e) => setMode(e.target.value as SynergyMode)}
                   className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="INTERSECTION">Intersection</option>
-                  <option value="THRESHOLD">Threshold</option>
+                  <option value="INTERSECTION">All selected teams working</option>
+                  <option value="THRESHOLD">Minimum number of selected teams working</option>
                 </select>
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
                   ▾
@@ -277,19 +242,19 @@ export const DependencyFinder: React.FC<DependencyFinderProps> = ({
           <div className="flex flex-col md:flex-row items-center gap-6 pt-4 border-t border-slate-200">
             <div className="flex-1 w-full space-y-3">
               <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                Mode Preview
+                What this means
               </label>
               <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl text-xs font-semibold text-slate-600">
                 {mode === "INTERSECTION"
-                  ? "Intersection: all selected teams must be WORKING."
-                  : `Threshold: at least ${threshold} selected teams must be WORKING.`}
+                  ? "All selected teams must be working on the same Saturday."
+                  : `At least ${threshold} selected teams must be working on the same Saturday.`}
               </div>
             </div>
 
             {mode === "THRESHOLD" && (
               <div className="flex-1 w-full space-y-3">
                 <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                  Min. Count: {threshold}
+                  Minimum Teams: {threshold}
                 </label>
                 <input
                   type="range"
@@ -304,7 +269,7 @@ export const DependencyFinder: React.FC<DependencyFinderProps> = ({
 
             <div className="shrink-0 bg-blue-50 px-6 py-4 rounded-2xl border border-blue-100">
               <p className="text-[10px] font-black uppercase text-blue-600 mb-1">
-                Synergies Found
+                Matching Saturdays
               </p>
               <p className="text-2xl font-black text-blue-700">
                 {overlappingDates.length} Dates
@@ -316,10 +281,10 @@ export const DependencyFinder: React.FC<DependencyFinderProps> = ({
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.4em] text-blue-600">
             <AlertTriangle size={18} />
-            Impact Matrix
+            Team Summary
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Animated pulse highlights critical dependencies.
+            Shows how many matching Saturdays each team has.
           </p>
           <div className="mt-4 space-y-2">
             {impactMatrix.map((entry) => (
@@ -342,15 +307,15 @@ export const DependencyFinder: React.FC<DependencyFinderProps> = ({
                       : "bg-slate-100 text-slate-400"
                   }`}
                 >
-                  {entry.overlaps} overlaps
+                  {entry.overlaps} matches
                 </span>
               </div>
             ))}
           </div>
           <div className="mt-5 text-[10px] font-black uppercase tracking-[0.4em] flex items-center justify-between text-slate-500">
-            <span>PULSE ALERTS</span>
+            <span>Important matches</span>
             <span className="text-blue-400">
-              {impactMatrix.filter((entry) => entry.isCritical).length} critical
+              {impactMatrix.filter((entry) => entry.isCritical).length} important
             </span>
           </div>
         </div>
@@ -399,7 +364,7 @@ export const DependencyFinder: React.FC<DependencyFinderProps> = ({
       {overlappingDates.length === 0 && (
         <div className="text-center py-20 bg-white rounded-2xl border-dashed border-2 border-slate-200">
           <p className="text-slate-400 font-bold italic">
-            Adjust selection or logic to discover matching shift dates.
+            Change the selected teams or filters to find matching Saturdays.
           </p>
         </div>
       )}
@@ -409,14 +374,14 @@ export const DependencyFinder: React.FC<DependencyFinderProps> = ({
           <div className="flex items-center justify-between gap-3 mb-4">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
-                Heatmap
+                Monthly Count
               </p>
               <h3 className="text-lg font-bold text-slate-900 mt-1">
-                Dependency Impact Heatmap
+                Dependency Impact Monthly Count
               </h3>
             </div>
             <p className="text-xs font-semibold text-slate-500">
-              Click a cell to focus month + team
+              Click a number to filter that month and team.
             </p>
           </div>
 

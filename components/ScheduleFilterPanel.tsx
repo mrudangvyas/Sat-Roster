@@ -42,13 +42,13 @@ export const ScheduleFilterPanel: React.FC<ScheduleFilterPanelProps> = ({
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.26em] text-slate-400">
-            Selection Engine
+            Dashboard Filters
           </p>
           <h3 className="mt-1 text-lg font-bold text-slate-800">
             Schedule Filters
           </h3>
           <p className="text-xs text-slate-500 mt-1">
-            Shared across dashboard, planner, AIRAC, dependency, and registry.
+            Filters apply to Dashboard only.
           </p>
         </div>
         <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600">
