@@ -94,9 +94,64 @@ interface CompareSnapshot {
   airacCount: number;
 }
 
+interface StaticScheduleDataset {
+  defaultYear: string;
+  availableYears: string[];
+  csvByYear: Record<string, string>;
+  generatedAt: string;
+}
+
+interface StaticAiracDataset {
+  defaultYear: string;
+  availableYears: string[];
+  recordsByYear: Record<string, AiracCycleRecord[]>;
+  generatedAt: string;
+}
+
 const NOTE_WORKFLOW_KEY = "satroster_note_workflow";
 const ALERT_STALE_MINUTES = 45;
 const AIRAC_CONFLICT_WINDOW_DAYS = 3;
+const STATIC_SCHEDULE_DATA_URL = `${import.meta.env.BASE_URL}api/schedule-by-year.json`;
+const STATIC_AIRAC_DATA_URL = `${import.meta.env.BASE_URL}api/airac-by-year.json`;
+
+let scheduleDatasetPromise: Promise<StaticScheduleDataset> | null = null;
+let airacDatasetPromise: Promise<StaticAiracDataset> | null = null;
+
+const fetchStaticJson = async <T,>(url: string): Promise<T> => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Static dataset request failed: ${response.status}`);
+  }
+  return (await response.json()) as T;
+};
+
+const loadScheduleDataset = () => {
+  scheduleDatasetPromise =
+    scheduleDatasetPromise ??
+    fetchStaticJson<StaticScheduleDataset>(STATIC_SCHEDULE_DATA_URL);
+  return scheduleDatasetPromise;
+};
+
+const loadAiracDataset = () => {
+  airacDatasetPromise =
+    airacDatasetPromise ??
+    fetchStaticJson<StaticAiracDataset>(STATIC_AIRAC_DATA_URL);
+  return airacDatasetPromise;
+};
+
+const resolveYear = (
+  requestedYear: string,
+  availableYears: string[],
+  defaultYear: string,
+) => {
+  if (availableYears.includes(requestedYear)) {
+    return requestedYear;
+  }
+  if (availableYears.includes(defaultYear)) {
+    return defaultYear;
+  }
+  return availableYears[0] || requestedYear;
+};
 
 const parseStoredNoteWorkflow = () => {
   const raw = localStorage.getItem(NOTE_WORKFLOW_KEY);
@@ -129,7 +184,7 @@ const diffDays = (leftISO: string, rightISO: string) => {
 };
 
 const App: React.FC<AppProps> = ({ variant = "classic" }) => {
-  type ScheduleSourceMode = "api" | "fallback" | "uploaded";
+  type ScheduleSourceMode = "static" | "fallback" | "uploaded";
   const isV2 = variant === "v2";
 
   const [data, setData] = useState<ScheduleData | null>(null);
@@ -159,7 +214,7 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
   const [isImported, setIsImported] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [scheduleSourceMode, setScheduleSourceMode] =
-    useState<ScheduleSourceMode>("api");
+    useState<ScheduleSourceMode>("static");
   const [scheduleWarning, setScheduleWarning] = useState<string | null>(null);
   const [airacResolvedYear, setAiracResolvedYear] = useState<string>(
     APP_CONFIG.CURRENT_YEAR,
@@ -212,28 +267,29 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
       }
 
       try {
-        const response = await fetch(`/api/schedule?year=${selectedYear}`);
-        if (!response.ok) {
-          throw new Error(`Server responded with ${response.status}`);
+        const dataset = await loadScheduleDataset();
+        const availableYears = Array.isArray(dataset.availableYears)
+          ? dataset.availableYears
+          : [];
+        const resolvedYear = resolveYear(
+          selectedYear,
+          availableYears,
+          dataset.defaultYear || APP_CONFIG.CURRENT_YEAR,
+        );
+        const csv = dataset.csvByYear?.[resolvedYear];
+        if (!csv) {
+          throw new Error("No schedule CSV found in static dataset");
         }
+        scheduleCacheRef.current[resolvedYear] = csv;
 
-        const payload = await response.json();
-        if (!payload?.csv) {
-          throw new Error("Invalid API payload");
-        }
-
-        const resolvedYear =
-          typeof payload?.resolvedYear === "string"
-            ? payload.resolvedYear
-            : selectedYear;
-        scheduleCacheRef.current[resolvedYear] = payload.csv;
-
-        setData(processScheduleData(payload.csv));
+        setData(processScheduleData(csv));
         setIsImported(false);
-        setScheduleSourceMode("api");
+        setScheduleSourceMode("static");
         setScheduleFetchedAt(new Date().toISOString());
         setScheduleWarning(
-          typeof payload?.warning === "string" ? payload.warning : null,
+          resolvedYear !== selectedYear
+            ? `Schedule year ${selectedYear} is unavailable. Showing ${resolvedYear}.`
+            : null,
         );
         setUploadError(null);
       } catch (error) {
@@ -246,10 +302,10 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
         setScheduleFetchedAt(new Date().toISOString());
         setScheduleWarning(
           cachedCsv
-            ? `Live schedule API is unavailable. Displaying cached ${selectedYear} schedule data.`
+            ? `Static schedule dataset is unavailable. Displaying cached ${selectedYear} schedule data.`
             : selectedYear === APP_CONFIG.CURRENT_YEAR
-              ? "Live schedule API is unavailable. Displaying bundled fallback data."
-              : `Live schedule API is unavailable. Displaying bundled ${APP_CONFIG.CURRENT_YEAR} fallback data for requested year ${selectedYear}.`,
+              ? "Static schedule dataset is unavailable. Displaying bundled fallback data."
+              : `Static schedule dataset is unavailable. Displaying bundled ${APP_CONFIG.CURRENT_YEAR} fallback data for requested year ${selectedYear}.`,
         );
       }
     };
@@ -260,32 +316,34 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
   useEffect(() => {
     const fetchAiracData = async () => {
       try {
-        const response = await fetch(`/api/airac?year=${selectedYear}`);
-        if (!response.ok) {
-          throw new Error(`Server responded with ${response.status}`);
-        }
-
-        const payload = await response.json();
-        setAiracRecords(Array.isArray(payload?.records) ? payload.records : []);
-        setAiracResolvedYear(
-          typeof payload?.resolvedYear === "string"
-            ? payload.resolvedYear
-            : selectedYear,
+        const dataset = await loadAiracDataset();
+        const availableYears = Array.isArray(dataset.availableYears)
+          ? dataset.availableYears
+          : [];
+        const resolvedYear = resolveYear(
+          selectedYear,
+          availableYears,
+          dataset.defaultYear || APP_CONFIG.CURRENT_YEAR,
         );
-        setAiracAvailableYears(
-          Array.isArray(payload?.availableYears) ? payload.availableYears : [],
-        );
+        const records = Array.isArray(dataset.recordsByYear?.[resolvedYear])
+          ? dataset.recordsByYear[resolvedYear]
+          : [];
+        setAiracRecords(records);
+        setAiracResolvedYear(resolvedYear);
+        setAiracAvailableYears(availableYears);
         setAiracWarning(
-          typeof payload?.warning === "string" ? payload.warning : null,
+          resolvedYear !== selectedYear
+            ? `AIRAC year ${selectedYear} is unavailable. Showing ${resolvedYear}.`
+            : null,
         );
         setAiracFetchedAt(new Date().toISOString());
       } catch (error) {
-        console.warn("AIRAC data unavailable:", error);
+        console.warn("AIRAC static data unavailable:", error);
         setAiracRecords([]);
         setAiracResolvedYear(selectedYear);
         setAiracAvailableYears([]);
         setAiracWarning(
-          `AIRAC API unavailable for requested year ${selectedYear}.`,
+          `AIRAC static dataset unavailable for requested year ${selectedYear}.`,
         );
         setAiracFetchedAt(new Date().toISOString());
       }
@@ -341,26 +399,39 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
     const compareYear = String(parsedYear - 1);
     const fetchCompare = async () => {
       try {
-        const response = await fetch(`/api/schedule?year=${compareYear}`);
-        if (!response.ok) {
-          throw new Error(`Server responded with ${response.status}`);
+        const scheduleDataset = await loadScheduleDataset();
+        const scheduleYears = Array.isArray(scheduleDataset.availableYears)
+          ? scheduleDataset.availableYears
+          : [];
+        const resolvedCompareYear = resolveYear(
+          compareYear,
+          scheduleYears,
+          scheduleDataset.defaultYear || APP_CONFIG.CURRENT_YEAR,
+        );
+        const compareCsv = scheduleDataset.csvByYear?.[resolvedCompareYear];
+        if (!compareCsv) {
+          throw new Error("Compare year schedule is unavailable");
         }
-        const payload = await response.json();
-        if (!payload?.csv) {
-          throw new Error("Invalid compare payload");
-        }
-        const compareData = processScheduleData(payload.csv);
+        const compareData = processScheduleData(compareCsv);
         let compareAiracCount = 0;
         try {
-          const airacResponse = await fetch(`/api/airac?year=${compareYear}`);
-          if (airacResponse.ok) {
-            const airacPayload = await airacResponse.json();
-            compareAiracCount = Array.isArray(airacPayload?.records)
-              ? airacPayload.records.length
-              : 0;
-          }
+          const airacDataset = await loadAiracDataset();
+          const airacYears = Array.isArray(airacDataset.availableYears)
+            ? airacDataset.availableYears
+            : [];
+          const resolvedAiracYear = resolveYear(
+            compareYear,
+            airacYears,
+            airacDataset.defaultYear || APP_CONFIG.CURRENT_YEAR,
+          );
+          const airacRecordsForYear = airacDataset.recordsByYear?.[
+            resolvedAiracYear
+          ];
+          compareAiracCount = Array.isArray(airacRecordsForYear)
+            ? airacRecordsForYear.length
+            : 0;
         } catch (airacError) {
-          console.warn("Compare AIRAC fetch unavailable:", airacError);
+          console.warn("Compare AIRAC static dataset unavailable:", airacError);
         }
         const heavyDates = compareData.records.filter((record) => {
           const working = compareData.teams.filter(
@@ -1140,9 +1211,9 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
       ? {
           id: "fallback",
           severity: "high" as const,
-          title: "Schedule API fallback in use",
+          title: "Schedule fallback in use",
           detail:
-            "Live schedule API is unavailable. Fallback roster is active.",
+            "Static schedule dataset is unavailable. Fallback roster is active.",
           actionLabel: "Review data source",
           action: () => setIsAuditPanelOpen(true),
         }
@@ -1215,38 +1286,49 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
     action: () => void;
   }>;
 
+  const commandChipClass =
+    "inline-flex items-center rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all hover:-translate-y-0.5";
+  const darkCommandChipClass = `${commandChipClass} border-white/10 bg-white/10 text-slate-200 hover:bg-white/20`;
+  const lightMenuButtonClass =
+    "inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-[11px] font-bold text-slate-100 shadow-sm transition-all hover:-translate-y-0.5 hover:bg-white/20";
+  const dropdownPanelClass =
+    "absolute top-full right-0 z-50 mt-2 rounded-2xl border border-white/70 bg-white/95 p-2 shadow-[0_22px_60px_rgba(15,23,42,0.18)] backdrop-blur";
+  const insightCardClass =
+    "rounded-2xl border border-white/70 bg-white/90 px-4 py-3 shadow-[0_16px_42px_rgba(15,23,42,0.08)] ring-1 ring-slate-900/[0.03] backdrop-blur";
+
   return (
     <PageShell>
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200">
-        <div className="w-full px-6 py-4 space-y-3">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex flex-col xl:flex-row xl:items-center gap-3">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/95 text-white shadow-[0_18px_55px_rgba(15,23,42,0.22)] backdrop-blur-xl">
+        <div className="w-full space-y-4 px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setView("dashboard")}
-                  className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-200 text-white"
+                  className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 p-2.5 text-white shadow-[0_16px_34px_rgba(37,99,235,0.35)] transition-transform hover:-translate-y-0.5"
                   type="button"
                 >
-                  <Calendar className="w-6 h-6" />
+                  <Calendar className="relative z-10 h-6 w-6" />
+                  <span className="absolute inset-0 bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
                 </button>
                 <div>
-                  <h1 className="text-xl font-bold text-slate-900 leading-none mb-1">
+                  <h1 className="mb-1 text-xl font-bold leading-none text-white">
                     SatRoster
                   </h1>
-                  <p className="text-xs font-medium text-slate-500">
+                  <p className="text-xs font-medium text-slate-400">
                     Saturday Coverage Control Center
                   </p>
                 </div>
 
-                <div className="relative ml-2">
+                <div className="relative ml-auto sm:ml-2">
                   <select
                     value={selectedYear}
                     disabled={isYearLocked}
                     onChange={(event) => setSelectedYear(event.target.value)}
-                    className={`appearance-none pl-3 pr-9 py-2 rounded-xl text-xs font-bold border border-slate-200 transition-colors ${
+                    className={`appearance-none rounded-xl border py-2 pl-3 pr-9 text-xs font-bold transition-colors ${
                       isYearLocked
-                        ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                        : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                        ? "border-white/10 bg-white/5 text-slate-500 cursor-not-allowed"
+                        : "border-white/15 bg-white/10 text-slate-100 hover:bg-white/20"
                     }`}
                     title={
                       isYearLocked
@@ -1260,7 +1342,7 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 </div>
               </div>
               <SegmentedTabs
@@ -1270,13 +1352,15 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
                 }))}
                 activeId={view}
                 onChange={(id) => setView(id)}
+                className="border-white/10 bg-white/10"
               />
             </div>
 
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setView("poster")}
-                className="p-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                className="rounded-xl border border-white/10 bg-white/10 p-2 text-slate-200 transition-all hover:-translate-y-0.5 hover:bg-white/20 hover:text-white"
+                aria-label="Open poster preview"
                 title="Poster Preview"
                 type="button"
               >
@@ -1294,7 +1378,7 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
                     setSelectedDetailRecord(nextSaturdayRecord)
                   }
                   type="button"
-                  className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  className={`${darkCommandChipClass} border-slate-300/20`}
                 >
                   Next Saturday: {nextSaturdayRecord?.dateISO || "None"} (
                   {nextSaturdayWorkingCount}/{scopedTeams.length} working)
@@ -1302,7 +1386,7 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
                 <button
                   onClick={() => setView("dashboard")}
                   type="button"
-                  className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 hover:bg-blue-200"
+                  className={`${commandChipClass} border-blue-400/25 bg-blue-400/10 text-blue-100 hover:bg-blue-400/20`}
                 >
                   Coverage Now:{" "}
                   {activeScheduleData.globalAverageCoverage.toFixed(1)}%
@@ -1310,7 +1394,7 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
                 <button
                   onClick={() => setView("airac")}
                   type="button"
-                  className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                  className={`${commandChipClass} border-indigo-400/25 bg-indigo-400/10 text-indigo-100 hover:bg-indigo-400/20`}
                 >
                   AIRAC Active Today: {activeAiracTodayCount}
                 </button>
@@ -1321,25 +1405,25 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
                     setNoteWorkflowFilter("ALL");
                   }}
                   type="button"
-                  className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700 hover:bg-amber-200"
+                  className={`${commandChipClass} border-amber-300/25 bg-amber-300/10 text-amber-100 hover:bg-amber-300/20`}
                 >
                   Open Notes: {openNotesCount}
                 </button>
                 <button
                   onClick={() => setView("dependency")}
                   type="button"
-                  className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-100 text-rose-700 hover:bg-rose-200"
+                  className={`${commandChipClass} border-rose-300/25 bg-rose-300/10 text-rose-100 hover:bg-rose-300/20`}
                 >
                   Critical Overlap: {criticalDependencyCount}
                 </button>
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700">
+                <span className={`${commandChipClass} border-emerald-300/25 bg-emerald-300/10 text-emerald-100`}>
                   Team Scope: {teamFilterMode === "all" ? "All" : "Custom"} (
                   {scopedTeams.length})
                 </span>
                 <button
                   onClick={() => setIsAuditPanelOpen((previous) => !previous)}
                   type="button"
-                  className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  className={darkCommandChipClass}
                 >
                   Data: {scheduleSourceMode.toUpperCase()} @
                   {formatFetchedAt(scheduleFetchedAt)} | AIRAC @
@@ -1352,18 +1436,18 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
                     setOnlyNotesFilter(false);
                   }}
                   type="button"
-                  className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-orange-100 text-orange-700 hover:bg-orange-200"
+                  className={`${commandChipClass} border-orange-300/25 bg-orange-300/10 text-orange-100 hover:bg-orange-300/20`}
                 >
                   Action Notes: {actionRequiredNotesCount}
                 </button>
                 <button
                   onClick={() => setView("airac")}
                   type="button"
-                  className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-fuchsia-100 text-fuchsia-700 hover:bg-fuchsia-200"
+                  className={`${commandChipClass} border-cyan-300/25 bg-cyan-300/10 text-cyan-100 hover:bg-cyan-300/20`}
                 >
                   AIRAC Conflicts: {upcomingAiracConflictRecords.length}
                 </button>
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cyan-100 text-cyan-700">
+                <span className={`${commandChipClass} border-sky-300/25 bg-sky-300/10 text-sky-100`}>
                   Load Balance: {loadBalanceInsight.score.toFixed(1)}
                 </span>
 
@@ -1372,10 +1456,10 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
                     setIsCompareModeEnabled((previous) => !previous)
                   }
                   type="button"
-                  className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                  className={`${commandChipClass} ${
                     isCompareModeEnabled
-                      ? "border-indigo-300 bg-indigo-50 text-indigo-700"
-                      : "border-slate-200 bg-white text-slate-600"
+                      ? "border-indigo-300/40 bg-indigo-300/15 text-indigo-100"
+                      : "border-white/10 bg-white/10 text-slate-200"
                   }`}
                   title="Compare selected year against previous year"
                 >
@@ -1387,13 +1471,13 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
                     onClick={() =>
                       setIsAlertCenterOpen((previous) => !previous)
                     }
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                    className={lightMenuButtonClass}
                     type="button"
                   >
                     Alerts ({alertItems.length})
                   </button>
                   {isAlertCenterOpen && (
-                    <div className="absolute top-full right-0 mt-2 z-50 bg-white border border-slate-200 rounded-xl shadow-xl p-2 min-w-[280px] space-y-2">
+                    <div className={`${dropdownPanelClass} min-w-[280px] space-y-2`}>
                       {alertItems.length === 0 && (
                         <p className="px-3 py-2 text-xs font-semibold text-emerald-600">
                           No active alerts.
@@ -1402,7 +1486,7 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
                       {alertItems.map((item) => (
                         <div
                           key={item.id}
-                          className="rounded-lg border border-slate-100 p-2"
+                          className="rounded-xl border border-slate-100 bg-slate-50/80 p-3"
                         >
                           <p className="text-xs font-bold text-slate-800">
                             {item.title}
@@ -1434,7 +1518,7 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
                       handleQuickJump(event.target.value);
                       event.target.value = "";
                     }}
-                    className="appearance-none pl-3 pr-8 py-1.5 rounded-lg text-[11px] font-bold border border-slate-200 bg-white text-slate-700"
+                    className="appearance-none rounded-full border border-white/10 bg-white/10 py-1.5 pl-3 pr-8 text-[11px] font-bold text-slate-100 shadow-sm outline-none transition-colors hover:bg-white/20"
                     title="Keyboard: / to focus, g d, g a, g n"
                   >
                     <option value="" disabled>
@@ -1449,20 +1533,20 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
                     <option value="airac_conflicts">AIRAC Conflicts</option>
                     <option value="alerts">Alert Center</option>
                   </select>
-                  <ChevronDown className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 </div>
 
                 <div className="relative">
                   <button
                     onClick={() => setIsExportMenuOpen((previous) => !previous)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                    className={lightMenuButtonClass}
                     type="button"
                   >
                     <Download className="w-3.5 h-3.5" />
                     One-Click Export
                   </button>
                   {isExportMenuOpen && (
-                    <div className="absolute top-full right-0 mt-2 z-50 bg-white border border-slate-200 rounded-xl shadow-xl p-2 min-w-[220px]">
+                    <div className={`${dropdownPanelClass} min-w-[220px]`}>
                       <button
                         onClick={() => {
                           exportOpsBundle();
@@ -1508,7 +1592,7 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
                 {nextFourSaturdayRecords.map((entry) => (
                   <button
                     key={entry.record.dateISO}
@@ -1517,15 +1601,15 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
                       setSelectedDetailRecord(entry.record);
                     }}
                     type="button"
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-left hover:border-blue-200 hover:shadow-sm transition-all"
+                    className="group rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-blue-300/30 hover:bg-white/[0.14]"
                   >
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                       Next Slot
                     </p>
-                    <p className="text-sm font-bold text-slate-900 mt-1">
+                    <p className="mt-1 text-sm font-bold text-white">
                       {entry.record.dateISO}
                     </p>
-                    <p className="text-[11px] font-semibold text-slate-600">
+                    <p className="text-[11px] font-semibold text-slate-400">
                       {entry.working}/{scopedTeams.length} working •{" "}
                       {entry.risk}
                     </p>
@@ -1536,7 +1620,7 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
           )}
 
           {isV2 && yearIntegrityMismatch && (
-            <div className="flex items-center gap-2 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 rounded-2xl border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-[11px] font-semibold text-amber-100">
               <AlertTriangle className="w-4 h-4" />
               <span>
                 Year Integrity: schedule is {selectedYear}, AIRAC resolved to{" "}
@@ -1546,7 +1630,7 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
           )}
 
           {isV2 && isCompareModeEnabled && compareSnapshot && (
-            <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2">
+            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-indigo-300/30 bg-indigo-300/10 px-3 py-2 text-[11px] font-semibold text-indigo-100">
               <span>
                 Compare vs {compareSnapshot.compareYear}: coverage{" "}
                 {compareCoverageDelta !== null
@@ -1573,36 +1657,36 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
           )}
 
           {isV2 && isCompareModeEnabled && compareWarning && (
-            <div className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            <div className="rounded-2xl border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-[11px] font-semibold text-amber-100">
               {compareWarning}
             </div>
           )}
 
           {isV2 && isAuditPanelOpen && (
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.08] p-3 shadow-sm">
               <div className="flex items-center justify-between gap-3 mb-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
                   Data Audit
                 </p>
                 <button
                   type="button"
                   onClick={() => setIsAuditPanelOpen(false)}
-                  className="text-[11px] font-bold text-slate-500 hover:text-slate-700"
+                  className="text-[11px] font-bold text-slate-400 hover:text-white"
                 >
                   Close
                 </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2 text-xs font-semibold text-slate-700">
-                <div className="rounded-lg bg-white border border-slate-200 px-3 py-2">
+              <div className="grid grid-cols-1 gap-2 text-xs font-semibold text-slate-200 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-xl border border-white/10 bg-slate-950/20 px-3 py-2">
                   Schedule Source: {scheduleSourceMode.toUpperCase()}
                 </div>
-                <div className="rounded-lg bg-white border border-slate-200 px-3 py-2">
+                <div className="rounded-xl border border-white/10 bg-slate-950/20 px-3 py-2">
                   Schedule Age: {scheduleAgeMinutes ?? "-"} min
                 </div>
-                <div className="rounded-lg bg-white border border-slate-200 px-3 py-2">
+                <div className="rounded-xl border border-white/10 bg-slate-950/20 px-3 py-2">
                   AIRAC Age: {airacAgeMinutes ?? "-"} min
                 </div>
-                <div className="rounded-lg bg-white border border-slate-200 px-3 py-2">
+                <div className="rounded-xl border border-white/10 bg-slate-950/20 px-3 py-2">
                   Fetched: S {formatFetchedAt(scheduleFetchedAt)} | A{" "}
                   {formatFetchedAt(airacFetchedAt)}
                 </div>
@@ -1612,24 +1696,24 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
         </div>
       </header>
 
-      <main className="flex-1 w-full px-6 py-8 flex flex-col lg:flex-row gap-8">
+      <main className="flex-1 w-full px-4 py-6 pb-28 sm:px-6 lg:px-8 flex flex-col lg:flex-row gap-6 xl:gap-8">
         {view === "dashboard" && (
           <aside className="lg:w-80 flex-shrink-0">
-            <div className="lg:sticky lg:top-28 space-y-6">
+            <div className="lg:sticky lg:top-40 space-y-6">
               {uploadError && (
-                <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-700 text-xs font-semibold">
+                <div className="rounded-2xl border border-rose-100 bg-rose-50/90 p-4 text-xs font-semibold text-rose-700 shadow-sm">
                   {uploadError}
                 </div>
               )}
 
               {scheduleWarning && (
                 <div
-                  className={`p-4 rounded-2xl text-xs font-semibold border ${
+                  className={`rounded-2xl border p-4 text-xs font-semibold shadow-sm backdrop-blur ${
                     scheduleSourceMode === "fallback"
-                      ? "bg-amber-50 border-amber-100 text-amber-700"
+                      ? "bg-amber-50/90 border-amber-100 text-amber-700"
                       : scheduleSourceMode === "uploaded"
-                        ? "bg-blue-50 border-blue-100 text-blue-700"
-                        : "bg-slate-50 border-slate-200 text-slate-600"
+                        ? "bg-blue-50/90 border-blue-100 text-blue-700"
+                        : "bg-white/85 border-white/70 text-slate-600"
                   }`}
                 >
                   {scheduleWarning}
@@ -1668,45 +1752,45 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
 
         <div className="flex-1 min-w-0">
           {isV2 && (
-            <div className="mb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-              <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+            <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <div className={insightCardClass}>
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                   Load Balance Score
                 </p>
-                <p className="text-lg font-black text-slate-900 mt-1">
+                <p className="mt-1 text-2xl font-black text-slate-950">
                   {loadBalanceInsight.score.toFixed(1)}
                 </p>
                 <p className="text-[11px] font-semibold text-slate-500">
                   sigma {loadBalanceInsight.stdDev.toFixed(2)}
                 </p>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+              <div className={insightCardClass}>
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                   Overloaded Team
                 </p>
-                <p className="text-sm font-bold text-rose-700 mt-1">
+                <p className="mt-1 truncate text-base font-bold text-rose-700">
                   {loadBalanceInsight.max?.team || "N/A"}
                 </p>
                 <p className="text-[11px] font-semibold text-slate-500">
                   {loadBalanceInsight.max?.value ?? 0} working Saturdays
                 </p>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+              <div className={insightCardClass}>
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                   Underused Team
                 </p>
-                <p className="text-sm font-bold text-emerald-700 mt-1">
+                <p className="mt-1 truncate text-base font-bold text-emerald-700">
                   {loadBalanceInsight.min?.team || "N/A"}
                 </p>
                 <p className="text-[11px] font-semibold text-slate-500">
                   {loadBalanceInsight.min?.value ?? 0} working Saturdays
                 </p>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+              <div className={insightCardClass}>
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                   Note Workflow
                 </p>
-                <p className="text-sm font-bold text-slate-800 mt-1">
+                <p className="mt-1 text-sm font-bold text-slate-900">
                   {noteWorkflowCounts.note} note /{" "}
                   {noteWorkflowCounts["action-required"]} action /{" "}
                   {resolvedNotesCount} resolved
@@ -1794,10 +1878,10 @@ const App: React.FC<AppProps> = ({ variant = "classic" }) => {
         </div>
       </main>
 
-      <footer className="mt-auto border-t border-slate-200 bg-white px-6 py-3">
+      <footer className="mt-auto border-t border-white/70 bg-white/75 px-6 py-3 backdrop-blur">
         <div className="w-full text-center">
           <p className="text-xs font-semibold text-slate-500 sm:text-sm">
-            SatRoster &bull; Developed by Mrudang Vyas &bull; Internal planning and roster support tool
+            SatRoster • Developed by Mrudang Vyas • Internal planning and roster support tool
           </p>
         </div>
       </footer>
